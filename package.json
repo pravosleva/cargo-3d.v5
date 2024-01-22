@@ -1,15 +1,23 @@
 {
-  "name": "threejs-starter-vite",
+  "name": "threejs-vite",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1-beta-2024",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
+  "engines": {
+    "npm": ">=9.3.1",
+    "node": ">=18.14.0 <20.0.0",
+    "yarn": "1.22.5"
+  },
   "devDependencies": {
+    "@types/node": "^20.11.5",
     "@types/three": "^0.155.0",
+    "@vitejs/plugin-legacy": "^5.2.0",
+    "terser": "^5.27.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.0"
   },
