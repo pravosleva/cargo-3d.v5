@@ -290,9 +290,7 @@ function init() {
       const cubesData: {
         [key: string]: {
           target: Mesh;
-          x: number;
-          y: number;
-          z: number;
+          // x: number; y: number; z: number;
           _details: any;
           descr: string;
         };
@@ -310,15 +308,21 @@ function init() {
         //     cargoAddSize
         //   },
         // } =  details
+        
+        const _msgs = []
+        // NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
         for (let iX = 0; iX < 1; iX++) {
-          // For each by X (red)
+          // For each by X (red) - by length
           let coordX = iX * inSI.getMeters(cargoLength[id]) + (inSI.getMeters(cargoLength[id]) / 2) + inSI.getMeters(cargoAddSize[id]);
+          _msgs.push(`coordX= ${coordX}`)
           for (let iY = 0; iY < 1; iY++) {
-            // For each by Y (green)
+            // For each by Y (green) - by height
             let coordY = iY * inSI.getMeters(cargoHeight[id]) + (inSI.getMeters(cargoHeight[id]) / 2);
+            _msgs.push(`coordY= ${coordY}`)
             for (let iZ = 0; iZ < 1; iZ++) {
-              // For each by Z (blue)
+              // For each by Z (blue) - by width
               let coordZ = iZ * inSI.getMeters(cargoWidth[id]) + (inSI.getMeters(cargoWidth[id]) / 2) + (iZ + 1) * inSI.getMeters(cargoAddSize[id])
+              _msgs.push(`coordZ= ${coordZ}`)
               let cubeMaterial
               if (
                 _pcs >= _fact_inWagon.result
@@ -345,21 +349,27 @@ function init() {
                 isCorrectCube = true;
               }
               
-              let cube = new Mesh(getCubeGeometry(cargoLength[id], cargoWidth[id], cargoHeight[id]), cubeMaterial);
+              let cube = new Mesh(getCubeGeometry(cargoLength[id], cargoHeight[id], cargoWidth[id]), cubeMaterial);
               cube.name = id
               cube.castShadow = true
               if (
                 (mayBeOffsetY > 0 && ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetY) > inSI.getMeters(cargoWidth[id])))
                 && ((mayBeDowngradeOffsetX - inSI.getMeters(cargoLength[id])) > 0)
               ) {
+                // Ставить рядом по ширине фуры
                 cube.position.x = coordX - offsetX - mayBeDowngradeOffsetX;
                 cube.position.z = coordZ + offsetY + mayBeOffsetY;
                 mayBeOffsetY = 0
+
+                _msgs.push(`case1: x=${cube.position.x}, z=${cube.position.z}, mayBeOffsetY=${mayBeOffsetY}, mayBeDowngradeOffsetX=${mayBeDowngradeOffsetX}`)
               } else {
+                // Ставить дальше по длине фуры
                 cube.position.x = coordX - offsetX;
                 cube.position.z = coordZ + offsetY;
                 mayBeOffsetY = inSI.getMeters(cargoWidth[id]) + inSI.getMeters(cargoAddSize[id])
                 mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+
+                _msgs.push(`case2: x=${cube.position.x}, z=${cube.position.z}, mayBeOffsetY=${mayBeOffsetY}, mayBeDowngradeOffsetX=${mayBeDowngradeOffsetX}`)
                 if (isCorrectCube) {
                   // console.log(`-> correct: +${inSI.getMeters(cargoLength[id]).toFixed(2)} +${inSI.getMeters(cargoAddSize[id]).toFixed(2)} =${inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])}`)
                   totalX += inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
@@ -376,11 +386,12 @@ function init() {
               })
               cubesData[name] = {
                 target: cube,
-                x: cube.position.x,
-                y: cube.position.y,
-                z: cube.position.z,
+                // x: cube.position.x,
+                // y: cube.position.y,
+                // z: cube.position.z,
                 descr: comment,
                 _details: {
+                  _msgs,
                   isCorrectCube, cargoConfig, id, name, comment, ...rest,
                 },
               }
@@ -449,9 +460,9 @@ function init() {
         mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
       })
       showNotif({
-        type: 'success',
-        title: 'Ok',
-        description: `totalX is ${totalX.toFixed(2)} m`,
+        type: 'info',
+        title: 'totalX',
+        description: `${totalX.toFixed(2)} m`,
       })
       // --
 
@@ -537,8 +548,9 @@ function init() {
 
     // ===== 🪄 HELPERS =====
     {
+      // NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
       axesHelper = new AxesHelper(4)
-      axesHelper.visible = false
+      axesHelper.visible = true
       scene.add(axesHelper)
 
       pointLightHelper = new PointLightHelper(pointLight, undefined, 'orange')

@@ -163,113 +163,135 @@ export const retail = (function(){
         }
       }
     },
-    inWagon: function(arg: any) {
-      //console.log(arg);
-      let length = Number(arg.length),
-        width = Number(arg.width),
-        height = Number(arg.height),
-        weight = Number(arg.weight),
-        maxInWagon = Number(arg.maxInWagon),
-        addSize = Number(arg.addSize),
-        maxRowsInWagon_byWagonWidth = Number(arg.maxRowsInWagon_byWagonWidth),
-        maxRowsInWagon_byWagonLength = Number(arg.maxRowsInWagon_byWagonLength),
-        maxFloorsInWagon = Number(arg.maxFloorsInWagon);
-      //console.log(length, width, height);
-      // console.log(maxFloorsInWagon)
-      // console.log({ width, length, height })
-      // The Wagon
-      var wagon: {
+    // NOTE: Расчет конфигурации одного продукта внутри контейнера The Wagon
+    inWagon: ({
+      length,
+      width,
+      height,
+      weight,
+      maxInWagon,
+      addSize,
+      maxRowsInWagon_byWagonWidth,
+      maxRowsInWagon_byWagonLength,
+      maxFloorsInWagon,
+      wagon,
+    }: {
+      // 1. Cargo settings
+      length: number;
+      width: number;
+      height: number;
+      weight: number;
+      maxInWagon: number;
+      addSize: number;
+      maxRowsInWagon_byWagonWidth: number;
+      maxRowsInWagon_byWagonLength: number;
+      maxFloorsInWagon: number;
+      // 2. The Wagon limits
+      wagon: {
         maxLength: number;
         maxWidth: number;
         maxHeight: number;
         maxWeight: number;
-      } = {
-        maxLength: Number(arg.wagon.maxLength),
-        maxWidth: Number(arg.wagon.maxWidth),
-        maxHeight: Number(arg.wagon.maxHeight),
-        maxWeight: Number(arg.wagon.maxWeight),
       };
+    }) => {
+      let lItemFact,
+        wItemFact,
+        floors, // NOTE: Вместительность по высоте в единицах продукта
+        config: any = {},
+        horizontalOrientation: 'byLength' | 'byWidth' = 'byWidth',
+        result = 0 // NOTE: Максимально возможное количество данного груза в машине
+      if (length < width) {
+        lItemFact = width + addSize
+        wItemFact = length + addSize
+      } else {
+        wItemFact = width + addSize
+        lItemFact = length + addSize
+      }
+      const msgs = [`Additional horizontal size is ${addSize} mm`]
+      msgs.push(`Dims for each unit [ in Blue + additional size ] is ${lItemFact} x ${wItemFact} x ${height} mm`)
 
-      // console.log(wagon)
+      switch (true) {
+        case wItemFact > wagon.maxWidth:
+          result = 0
+          msgs.push(`Наименьший гор. размер 1 единицы с учетом запаса превышает макс. ширину контейнера ${wItemFact} > ${wagon.maxWidth} mm`)
+          break
+        case lItemFact > wagon.maxLength:
+          result = 0
+          msgs.push(`Наибольший гор. размер 1 единицы с учетом запаса превышает макс. длину контейнера ${lItemFact} > ${wagon.maxLength} mm`)
+          break
+        case height > wagon.maxHeight:
+          result = 0
+          msgs.push(`Вертикальный размер 1 единицы превышает макс. высоту контейнера ${height} > ${wagon.maxHeight} mm`)
+          break
+        case weight > wagon.maxWeight:
+          result = 0
+          msgs.push(`Масса 1 единицы превышает грузоподъемность контейнера ${weight} > ${wagon.maxWeight} kg`)
+          break
+        default:
+          // NOTE: Расчетное количество ярусов в машине (для конкретного груза)
+          // TODO: В соответствии с разрешенным maxFloorsInWagon для данного бренда?
+          floors = 1;
+          for (let i = 1; i <= maxFloorsInWagon; i++) {
+            // console.log(wagon.maxHeight)
+            if (wagon.maxHeight >= (height * i)) floors = i
+          }
 
-      var l, w, floors, config: any = {}, horizontalOrientation: 'byLength' | 'byWidth' = 'byWidth';
-      if(length < width){
-        l = width + addSize;
-        w = length + addSize;
-      }else{
-        w = width + addSize;
-        l = length + addSize;
-      };
-      let result = 0
-      let comment = `Additional horizontal size is ${addSize} mm
-Dims for each unit [ in Blue + additional size ] is ${l} x ${w} x ${height} mm`;
-      if(w > wagon.maxWidth){
-        result = 0;
-        comment += " / Наименьший гор. размер 1 единицы с учетом запаса превышает макс. ширину контейнера " + w + " > " + wagon.maxWidth + " mm!"
-      } else if(l > wagon.maxLength){
-        result = 0;
-        comment += " / Наибольший гор. размер 1 единицы с учетом запаса превышает макс. длину контейнера " + l + " > " + wagon.maxLength + " mm!"
-      } else if(height > wagon.maxHeight){
-        result = 0;
-        comment += " / Вертикальный размер 1 единицы превышает макс. высоту контейнера " + height + " > " + wagon.maxHeight + " mm!"
-      } else if(weight > wagon.maxWeight){
-        result = 0;
-        comment += " / Масса 1 единицы превышает грузоподъемность контейнера " + weight + " > " + wagon.maxWeight + " kg!";
-      } else{
-        // расчетное количество ярусов в машине (в соответствии с разрешенным maxFloorsInWagon для данного бренда)
-        floors = 1;
-        for (let i=1; i<=maxFloorsInWagon; i++){
-          // console.log(wagon.maxHeight)
-          if (wagon.maxHeight >= (height * i))
-            floors = i
-        };
+          // v2
+          config.byLength1 = Math.floor(wagon.maxLength / (length + addSize))
+          if (config.byLength1 > maxRowsInWagon_byWagonLength)
+            config.byLength1 = maxRowsInWagon_byWagonLength
 
-        // v2
-        config.byLength1 = Math.floor(wagon.maxLength / (length + addSize));
-        if(config.byLength1 > maxRowsInWagon_byWagonLength){config.byLength1 = maxRowsInWagon_byWagonLength};
-        config.byWidth1 = Math.floor(wagon.maxWidth / (width + addSize));
-        if(config.byWidth1 > maxRowsInWagon_byWagonWidth){config.byWidth1 = maxRowsInWagon_byWagonWidth};
-        config.result1 = config.byLength1 * config.byWidth1;
-        config.byLength2 = Math.floor(wagon.maxLength / (width + addSize));
-        if(config.byLength2 > maxRowsInWagon_byWagonLength){config.byLength2 = maxRowsInWagon_byWagonLength};
-        config.byWidth2 = Math.floor(wagon.maxWidth / (length + addSize));
-        if(config.byWidth2 > maxRowsInWagon_byWagonWidth){config.byWidth2 = maxRowsInWagon_byWagonWidth};
-        config.result2 = config.byLength2 * config.byWidth2;
+          config.byWidth1 = Math.floor(wagon.maxWidth / (width + addSize))
+          if (config.byWidth1 > maxRowsInWagon_byWagonWidth)
+            config.byWidth1 = maxRowsInWagon_byWagonWidth
 
-        //result = Math.max(config.result1, config.result2);
-        //if(result === config.result1){horizontalOrientation = "byLength"}else{horizontalOrientation = "byWidth"}
-        if(config.result1 >= config.result2){
-          result = config.result1;
-          horizontalOrientation = 'byLength';
-          // for the 3D model:
-          config.pcsX = config.byLength1;
-          config.pcsY = config.byWidth1;
-          config.pcsZ = floors;
-        }else if(config.result1 < config.result2){
-          result = config.result2;
-          horizontalOrientation = 'byWidth';
-          // for the 3D model:
-          config.pcsX = config.byLength2;
-          config.pcsY = config.byWidth2;
-          config.pcsZ = floors;
-        }else{
-          comment += " / Не удалось определить расположение груза относительно контейнера!";
-        }
+          config.result1 = config.byLength1 * config.byWidth1
+          config.byLength2 = Math.floor(wagon.maxLength / (width + addSize))
+          if (config.byLength2 > maxRowsInWagon_byWagonLength)
+            config.byLength2 = maxRowsInWagon_byWagonLength
 
-        //result = result * rows;
-        if(result > maxRowsInWagon_byWagonLength * maxRowsInWagon_byWagonWidth){result = maxRowsInWagon_byWagonLength * maxRowsInWagon_byWagonWidth};
-        if(result * floors > maxInWagon){
-          result = maxInWagon
-        }else{
-          result = result * floors;
-        }
-      };//console.log(result);
+          config.byWidth2 = Math.floor(wagon.maxWidth / (length + addSize))
+          if (config.byWidth2 > maxRowsInWagon_byWagonWidth)
+            config.byWidth2 = maxRowsInWagon_byWagonWidth
+
+          config.result2 = config.byLength2 * config.byWidth2
+          //result = Math.max(config.result1, config.result2);
+          //if(result === config.result1){horizontalOrientation = "byLength"}else{horizontalOrientation = "byWidth"}
+          if (config.result1 >= config.result2) {
+            result = config.result1;
+            horizontalOrientation = 'byLength'
+            // for the 3D model:
+            config.pcsX = config.byLength1
+            config.pcsY = config.byWidth1
+            config.pcsZ = floors
+          } else if (config.result1 < config.result2) {
+            result = config.result2
+            horizontalOrientation = 'byWidth'
+            // for the 3D model:
+            config.pcsX = config.byLength2
+            config.pcsY = config.byWidth2
+            config.pcsZ = floors
+          } else msgs.push('Не удалось определить расположение груза относительно контейнера')
+
+          //result = result * rows;
+          // if (result > maxRowsInWagon_byWagonLength * maxRowsInWagon_byWagonWidth)
+          //   result = maxRowsInWagon_byWagonLength * maxRowsInWagon_byWagonWidth
+          
+          // if (result * floors > maxInWagon) result = maxInWagon
+          // else result = result * floors
+
+          break
+      }
 
       // Full length:
       let sizes: any = {};
       // 2) Height is firstly:
-      let _pcs = 0, // количество отображаемых кубиков
-        _pcsBlue = 0, _pcsXBlue = 0, _pcsYBlue = 0, _pcsZBlue = 0; // кол-во синих по X Y Z
+      let _pcs = 0, // NOTE: количество отображаемых кубиков
+        _pcsBlue = 0,
+        // NOTE: кол-во синих по X Y Z
+        _pcsXBlue = 0,
+        _pcsYBlue = 0,
+        _pcsZBlue = 0;
 
 			// --- Should be refactored!
 			//if(result===1){
@@ -322,19 +344,26 @@ Dims for each unit [ in Blue + additional size ] is ${l} x ${w} x ${height} mm`;
           break;
       }
       sizes.fullZ = _pcsZBlue * height;
-      sizes.comment = `Total units number is ${_pcs} pcs
-Blue= ${_pcsBlue} pcs
-BlueZ= ${_pcsZBlue} pcs
-BlueY= ${_pcsYBlue} pcs
-BlueX= ${_pcsXBlue} pcs
-Full X size= ${sizes.fullX} mm
-Full Y size= ${sizes.fullY} mm
-Full Z size= ${sizes.fullZ} mm`;
+      const _commentMsgs = [`Total units number is ${_pcs} pcs`]
+      _commentMsgs.push(`Blue= ${_pcsBlue} pcs`)
+      _commentMsgs.push(`BlueZ= ${_pcsZBlue} pcs`)
+      _commentMsgs.push(`BlueY= ${_pcsYBlue} pcs`)
+      _commentMsgs.push(`BlueX= ${_pcsXBlue} pcs`)
+      _commentMsgs.push(`Full X size= ${sizes.fullX} mm`)
+      _commentMsgs.push(`Full Y size= ${sizes.fullY} mm`)
+      _commentMsgs.push(`Full Z size= ${sizes.fullZ} mm`)
+      sizes.comment = _commentMsgs.join(', ')
 
-      // Cost calc for 1 m. is possible...
-      //...
+      // TODO: Cost calc for 1 m. is possible
 
-      return { result, comment, horizontalOrientation, wagon, config, sizes }
+      return {
+        result,
+        comment: msgs.join(', '),
+        horizontalOrientation,
+        wagon,
+        config,
+        sizes,
+      }
     },
     costOfDelivery: function(arg: any){
       // Доставка
