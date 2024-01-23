@@ -125,7 +125,8 @@ function init() {
     {
       const p = document.createElement('p')
       p.innerHTML = 'PAR'
-      p.style.width = '400px'
+      p.style.width = '320px'
+      // p.style.width = '100%'
       // p.style.maxWidth = 'calc(100vw - 16px - 16px)'
       p.style.height = 'auto'
       p.style.padding = '16px'
@@ -328,7 +329,7 @@ function init() {
                   color: 0xff7373,
                   emissive: '#ff7373',
                   wireframe: true,
-                  metalness: 0.3,
+                  metalness: 0.5,
                   roughness: 0.7,
                 })
                 isCorrectCube = false;
@@ -345,11 +346,7 @@ function init() {
               }
               
               let cube = new Mesh(getCubeGeometry(cargoLength[id], cargoWidth[id], cargoHeight[id]), cubeMaterial);
-              cube.name = name
-              // @ts-ignore
-              // cube._id = id
-              // cube.comment = comment;
-              // cube.cursor = 'pointer';
+              cube.name = id
               cube.castShadow = true
               if (
                 (mayBeOffsetY > 0 && ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetY) > inSI.getMeters(cargoWidth[id])))
@@ -363,7 +360,6 @@ function init() {
                 cube.position.z = coordZ + offsetY;
                 mayBeOffsetY = inSI.getMeters(cargoWidth[id]) + inSI.getMeters(cargoAddSize[id])
                 mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
-    
                 if (isCorrectCube) {
                   // console.log(`-> correct: +${inSI.getMeters(cargoLength[id]).toFixed(2)} +${inSI.getMeters(cargoAddSize[id]).toFixed(2)} =${inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])}`)
                   totalX += inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
@@ -416,10 +412,8 @@ function init() {
               cleanup()
 
               if (intersects.length > 0) {
-                console.log(intersects[0])
                 // @ts-ignore
                 if (!!intersects[0].object.name && !!cubesData[intersects[0].object.name]) {
-                  console.log('- ok')
                   // @ts-ignore
                   // cPointLabel.position.set(cubesData[intersects[0].object.name].x, cubesData[intersects[0].object.name].y, cubesData[intersects[0].object.name].z)
                   // cPointLabel.position.set(1, 1, 1)
@@ -434,7 +428,6 @@ function init() {
                   else p.style.borderColor = '#ff7373'
                 }
               } else {
-                // console.log('- not ok')
                 p.className = 'tooltip--hidden'
                 p.textContent = 'OFF'
                 p.style.borderColor = 'transparent'
