@@ -1,12 +1,15 @@
 {
-  "name": "threejs-vite",
+  "name": "cargo-3d-threejs-vite",
   "private": true,
   "version": "1.0.1-beta-2024",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:prod": "tsc && VITE_APP_VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g') VITE_GIT_SHA1=$(git show --format=\"%h\" --no-patch) vite build --mode production --emptyOutDir",
+    "build:staging": "tsc && VITE_APP_VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g') VITE_GIT_SHA1=$(git show --format=\"%h\" --no-patch) vite build --mode staging --emptyOutDir",
+    "preview": "vite preview",
+    "deploy2:prod": "yarn build:prod && bash _aux-tool.deploy2.prod.sh"
   },
   "engines": {
     "npm": ">=9.3.1",
@@ -15,14 +18,15 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
-    "@types/three": "^0.155.0",
+    "@types/three": "^0.160.0",
     "@vitejs/plugin-legacy": "^5.2.0",
+    "rollup-plugin-visualizer": "^5.12.0",
     "terser": "^5.27.0",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.0"
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
   },
   "dependencies": {
     "lil-gui": "^0.19.1",
-    "three": "^0.158.0"
+    "three": "^0.160.0"
   }
 }
