@@ -169,7 +169,7 @@ export const retail = (function(){
       width,
       height,
       weight,
-      maxInWagon,
+      // maxInWagon,
       addSize,
       maxRowsInWagon_byWagonWidth,
       maxRowsInWagon_byWagonLength,

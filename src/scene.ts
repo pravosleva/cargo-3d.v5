@@ -73,7 +73,7 @@ function init() {
     const validateParamsResult = checkCfg<URLSearchParams>({ cfg: paramsCfg, tested: queryParams, isDebugEnabled: true })
     if (!validateParamsResult.ok) throw new Error(validateParamsResult.reason)
     else {
-      showNotif({ type: 'success', title: 'Query params checked', description: validateParamsResult.reason })
+      // showNotif({ type: 'success', title: 'Query params checked', description: validateParamsResult.reason })
       if (!!validateParamsResult.output) searchParamsNormalized = validateParamsResult.output
     }
     if (!searchParamsNormalized) throw new Error(`🚫 searchParamsNormalized is ${typeof searchParamsNormalized}`)
@@ -125,7 +125,7 @@ function init() {
     {
       const p = document.createElement('p')
       p.innerHTML = 'PAR'
-      p.style.width = '320px'
+      p.style.width = '400px'
       // p.style.width = '100%'
       // p.style.maxWidth = 'calc(100vw - 16px - 16px)'
       p.style.height = 'auto'
@@ -139,9 +139,11 @@ function init() {
       p.style.display = 'flex'
       p.style.flexDirection = 'column'
       p.style.gap = '16px'
+      p.style.fontSize = '0.6em'
+      p.style.lineHeight = '1.2em'
       const wrapper = document.createElement('div')
       wrapper.style.position = 'fixed'
-      wrapper.style.bottom = '16px'
+      wrapper.style.top = '16px'
       wrapper.style.right = '16px'
       wrapper.style.opacity = '0'
       wrapper.className = 'backdrop-blur--lite'
@@ -153,14 +155,45 @@ function init() {
       scene.add(cPointLabel);
 
       // -- PATFORM & CUBES
-      let offsetX = inSI.getMeters(searchParamsNormalized.wagonLength) / 2.1
-      let offsetY = 0
+      const dynamic: {
+        offsetX: number;
+        counters: {
+          currentColumn: number;
+        };
+        curPosition: {
+          rowItems: number[]; // in mm
+          stash: {
+            leftX: number;
+            leftZ: number;
+          };
+          subStash: {
+            leftX: number;
+            leftZ: number;
+          };
+        };
+      } = {
+        offsetX: inSI.getMeters(searchParamsNormalized.wagonLength) / 2.1,
+        counters: {
+          currentColumn: 1,
+        },
+        curPosition: {
+          rowItems: [],
+          stash: {
+            leftX: 0,
+            leftZ: 0,
+          },
+          subStash: {
+            leftX: 0,
+            leftZ: 0,
+          },
+        },
+      }
       // let offsetZ_cargoOnly = inSI.getMeters(searchParamsNormalized.wagonWidth) / 4
       let degToRad = (deg: number) => deg * Math.PI / 180;
       const wagonLengthSI = inSI.getMeters(searchParamsNormalized.wagonLength)
       const wagonWidthSI = inSI.getMeters(searchParamsNormalized.wagonWidth)
       const wagonHeightSI = inSI.getMeters(searchParamsNormalized.wagonHeight)
-      const yxPlaneGeometry = new PlaneGeometry(wagonLengthSI, wagonWidthSI)
+      const yxPlaneGeometry = new PlaneGeometry(wagonLengthSI, wagonHeightSI)
       // NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
 
       // NOTE: материал для рисования (плоским или каркасным способом),
@@ -171,31 +204,31 @@ function init() {
       yxPlane.rotation.x = 0
       yxPlane.rotation.y = 0
       yxPlane.rotation.z = 0
-      yxPlane.position.x = (wagonLengthSI / 2) - offsetX
-      yxPlane.position.y = (wagonWidthSI / 2) + offsetY
+      yxPlane.position.x = (wagonLengthSI / 2) - dynamic.offsetX
+      yxPlane.position.y = (wagonHeightSI / 2)
       yxPlane.position.z = 0
       scene.add(yxPlane)
       // NOTE: 1.2 YZ (green + blue)
-      const yzPlaneGeometry = new PlaneGeometry(wagonHeightSI, wagonWidthSI)
+      const yzPlaneGeometry = new PlaneGeometry(wagonWidthSI, wagonHeightSI)
       const yzPlaneMaterial = new MeshBasicMaterial({ color: 0xdddddd })
       const yzPlane = new Mesh(yzPlaneGeometry, yzPlaneMaterial)
       yzPlane.rotation.x = 0
       yzPlane.rotation.y = degToRad(90)
       yzPlane.rotation.z = 0
-      yzPlane.position.x = 0 - offsetX
-      yzPlane.position.y = wagonWidthSI / 2 + offsetY
-      yzPlane.position.z = wagonHeightSI / 2
+      yzPlane.position.x = 0 - dynamic.offsetX
+      yzPlane.position.y = wagonHeightSI / 2
+      yzPlane.position.z = wagonWidthSI / 2
       scene.add(yzPlane)
       // NOTE: 1.3 ZX (blue + red) - Пол
-      const zxPlaneGeometry = new PlaneGeometry(wagonLengthSI, wagonHeightSI)
+      const zxPlaneGeometry = new PlaneGeometry(wagonLengthSI, wagonWidthSI)
       const zxPlaneMaterial = new MeshBasicMaterial({ color: 0xd0d0d0 })
       const zxPlane = new Mesh(zxPlaneGeometry, zxPlaneMaterial)
       zxPlane.rotation.x = degToRad(-90)
       zxPlane.rotation.y = 0
       zxPlane.rotation.z = 0
-      zxPlane.position.x = wagonLengthSI / 2 - offsetX
-      zxPlane.position.y = 0 + offsetY
-      zxPlane.position.z = wagonHeightSI / 2
+      zxPlane.position.x = wagonLengthSI / 2 - dynamic.offsetX
+      zxPlane.position.y = 0
+      zxPlane.position.z = wagonWidthSI / 2
       scene.add(zxPlane)
       const cargoLength: {[key: string]: number} = {}
       const cargoWidth: {[key: string]: number} = {}
@@ -217,15 +250,15 @@ function init() {
           height,
           weight,
           addSize,
-          maxInWagon: searchParamsNormalized?.maxInWagon,
-          maxRowsInWagon_byWagonWidth: searchParamsNormalized?.maxRowsInWagon_byWagonWidth,
-          maxRowsInWagon_byWagonLength: searchParamsNormalized?.maxRowsInWagon_byWagonLength,
-          maxFloorsInWagon: searchParamsNormalized?.maxFloorsInWagon,
+          maxInWagon: searchParamsNormalized?.maxInWagon || 0,
+          maxRowsInWagon_byWagonWidth: searchParamsNormalized?.maxRowsInWagon_byWagonWidth || 0,
+          maxRowsInWagon_byWagonLength: searchParamsNormalized?.maxRowsInWagon_byWagonLength || 0,
+          maxFloorsInWagon: searchParamsNormalized?.maxFloorsInWagon || 0,
           wagon: {
-            maxLength: searchParamsNormalized?.wagonLength,
-            maxWidth: searchParamsNormalized?.wagonWidth,
-            maxHeight: searchParamsNormalized?.wagonHeight,
-            maxWeight: searchParamsNormalized?.wagonCarryingCapacity,
+            maxLength: searchParamsNormalized?.wagonLength || 0,
+            maxWidth: searchParamsNormalized?.wagonWidth || 0,
+            maxHeight: searchParamsNormalized?.wagonHeight || 0,
+            maxWeight: searchParamsNormalized?.wagonCarryingCapacity || 0,
           }
         })
         cargoLength[id] = length
@@ -260,7 +293,8 @@ function init() {
             cargoLength[id] = width;
             cargoWidth[id] = _l_tpm;
             break;
-          default:;
+          default:
+            break;
         }
       })
 
@@ -273,7 +307,7 @@ function init() {
         inSI.getMeters(cargoWidth),
         inSI.getMeters(cargoHeight),
       );
-      let _pcs = 0;// количество отображаемых кубиков
+      let _pcs = 0 // количество отображаемых кубиков
       const _fact_inWagon = {
         result: products.reduce((acc, { cargoConfig }) => acc + cargoConfig.result, 0),
         comment: 'In progress',
@@ -282,8 +316,8 @@ function init() {
       if (!_fact_inWagon.result)
         throw new Error(`_fact_inWagon err! ${_fact_inWagon.comment}`)
 
-      let mayBeOffsetY = 0
-      let mayBeDowngradeOffsetX = 0
+      let mayBeOffsetZ = 0 // Сдвиг нового продукта в сторону по ширине
+      let mayBeDowngradeOffsetX = 0 // Сдвиг (возврат) нового продукта обратно по оси X
       let isCorrectCube = false
       let totalX = 0
       const group = new Group()
@@ -307,14 +341,18 @@ function init() {
         //     cargoHeight,
         //     cargoAddSize
         //   },
-        // } =  details
+        // } = details
         
         const _msgs = []
-        // NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
+        // -- NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
         for (let iX = 0; iX < 1; iX++) {
           // For each by X (red) - by length
-          let coordX = iX * inSI.getMeters(cargoLength[id]) + (inSI.getMeters(cargoLength[id]) / 2) + inSI.getMeters(cargoAddSize[id]);
-          _msgs.push(`coordX= ${coordX}`)
+          // let coordX =
+          //   ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetZ) > inSI.getMeters(cargoWidth[id]))
+          //   ? iX * inSI.getMeters(cargoLength[id]) + (inSI.getMeters(cargoLength[id]) / 2) + inSI.getMeters(cargoAddSize[id])
+          //   : iX * inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+          //   _msgs.push(`coordX= ${coordX}`)
+          let coordX = iX * inSI.getMeters(cargoLength[id]) + (inSI.getMeters(cargoLength[id]) / 2) + inSI.getMeters(cargoAddSize[id])
           for (let iY = 0; iY < 1; iY++) {
             // For each by Y (green) - by height
             let coordY = iY * inSI.getMeters(cargoHeight[id]) + (inSI.getMeters(cargoHeight[id]) / 2);
@@ -352,43 +390,154 @@ function init() {
               let cube = new Mesh(getCubeGeometry(cargoLength[id], cargoHeight[id], cargoWidth[id]), cubeMaterial);
               cube.name = id
               cube.castShadow = true
-              if (
-                (mayBeOffsetY > 0 && ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetY) > inSI.getMeters(cargoWidth[id])))
-                && ((mayBeDowngradeOffsetX - inSI.getMeters(cargoLength[id])) > 0)
-              ) {
-                // Ставить рядом по ширине фуры
-                cube.position.x = coordX - offsetX - mayBeDowngradeOffsetX;
-                cube.position.z = coordZ + offsetY + mayBeOffsetY;
-                mayBeOffsetY = 0
 
-                _msgs.push(`case1: x=${cube.position.x}, z=${cube.position.z}, mayBeOffsetY=${mayBeOffsetY}, mayBeDowngradeOffsetX=${mayBeDowngradeOffsetX}`)
-              } else {
-                // Ставить дальше по длине фуры
-                cube.position.x = coordX - offsetX;
-                cube.position.z = coordZ + offsetY;
-                mayBeOffsetY = inSI.getMeters(cargoWidth[id]) + inSI.getMeters(cargoAddSize[id])
+              try {
+                switch (true) {
+                  case mayBeOffsetZ > 0:
+                    // 1. Если возможен сдвиг продукта по ширине (текущий продукт не первый)
+
+                    if ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetZ) > inSI.getMeters(cargoWidth[id])) {
+                      // 1.1 ...и продукт вместится в оставшееся место по ширине
+
+                      if ((mayBeDowngradeOffsetX - inSI.getMeters(cargoLength[id])) > 0) {
+                        // 1.1.1 ...и места еще хватит поставить рядом с предыдущим
+
+                        if (dynamic.counters.currentColumn >= (searchParamsNormalized?.maxRowsInWagon_byWagonWidth || 0))
+                          throw new Error(`Go default: ${name} Превышен лимит единиц по ширине: после ${dynamic.counters.currentColumn} в одном ряду ставить нельзя (1.1.1-err)`)
+                        
+                        // ✅ Ставить рядом по ширине фуры
+                
+                        cube.position.x = coordX - dynamic.offsetX - mayBeDowngradeOffsetX
+                        _msgs.push(`log [1.1.1]: dynamic.offsetX ${dynamic.offsetX}`)
+                        cube.position.z = coordZ + mayBeOffsetZ
+                        
+                        const _oldVal = mayBeOffsetZ
+                        // mayBeOffsetZ = 0
+                        mayBeOffsetZ += inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
+                        
+                        _msgs.push(`log [1.1.1]: mayBeOffsetZ ${_oldVal}->${mayBeOffsetZ}`)
+
+                        dynamic.counters.currentColumn += 1
+                        dynamic.curPosition.rowItems.push(cargoWidth[id] + cargoAddSize[id])
+                        if (
+                          dynamic.curPosition.stash.leftX > inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        ) dynamic.curPosition.stash.leftX = inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        dynamic.curPosition.stash.leftZ = inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - inSI.getMeters(dynamic.curPosition.rowItems.reduce((acc, cur) => {
+                          acc += cur
+                          return acc
+                        }, 0))
+
+                        // dynamic.curPosition.subStash.leftX = dynamic.curPosition.stash.leftX - inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        dynamic.curPosition.subStash.leftX -= inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        dynamic.curPosition.subStash.leftZ = inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
+
+                        _msgs.push(`log [1.1.1]: stash leftX=${dynamic.curPosition.stash.leftX}`)
+                        _msgs.push(`log [1.1.1]: stash leftZ=${dynamic.curPosition.stash.leftZ}`)
+
+                        _msgs.push(`log [1.1.1]: subStash leftX=${dynamic.curPosition.subStash.leftX}`)
+                        _msgs.push(`log [1.1.1]: subStash leftZ=${dynamic.curPosition.subStash.leftZ}`)
+                      } else {
+
+                        // TODO: 1.1.2 Хватит ли места поставить в текущий ряд перед предыдущим?
+
+                        throw new Error(`Go default: ${name} TODO (1.1.2)`)
+                      }
+                  
+                    } else {
+                      // 1.2 Продукт не проходит по ширине в текущем ряду
+
+                      if (
+                        dynamic.curPosition.subStash.leftX >= inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        && dynamic.curPosition.subStash.leftZ >= inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
+                      ) {
+
+                        // 1.2.1 SUBSTASH! Если хватит места поставить в текущий ряд перед предыдущим
+
+                        // ✅ Ставить в SUBSTASH! перед предыдущим
+                        // throw new Error(`Go default: SUBSTASH! ${name} WIP (1.2.1)`)
+
+                        cube.position.x = coordX - dynamic.offsetX - mayBeDowngradeOffsetX + dynamic.curPosition.subStash.leftX
+                        // _msgs.push(`log [1.2.1]: dynamic.offsetX ${dynamic.offsetX}`)
+                        cube.position.z = coordZ + mayBeOffsetZ - dynamic.curPosition.subStash.leftZ
+
+                        dynamic.curPosition.subStash.leftX -= inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                        // dynamic.curPosition.subStash.leftZ = inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
+
+                        _msgs.push(`log [1.2.1]: ${name} в ряду ${
+                          dynamic.counters.currentColumn
+                        } вписался перед предыдущим (SUBSTASH case)`)
+                      } else throw new Error(`Go default: ${name} не проходит по ширине в ряду ${
+                        dynamic.counters.currentColumn
+                      } и не вписался перед предыдущим (1.2.2)`)
+                    }
+                    break
+                  case (inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetZ) > inSI.getMeters(cargoWidth[id]):
+                    // 2. Если хватит места по ширине (первый продукт в новом ряду)
+                    throw new Error(`Go default: ${name} (2)`)
+                  // case : // 3. ...не хватит места по ширине
+                  // case : // 4. ...если хватит места по длине
+                  default: // 5. ...не вместился (невозможно)
+                    throw new Error(`Go default: ${name} impossible`)
+                }
+              } catch (err: any) {
+                _msgs.push(`log [N]: ${err?.message}`)
+                console.info(err?.message)
+                dynamic.counters.currentColumn = 1
+                // N. Ставить дальше по длине фуры
+                cube.position.x = coordX - dynamic.offsetX
+                _msgs.push(`log [N]: dynamic.offsetX ${dynamic.offsetX}`)
+                cube.position.z = coordZ
+                const _oldVal = mayBeOffsetZ
+                mayBeOffsetZ = inSI.getMeters(cargoWidth[id]) + inSI.getMeters(cargoAddSize[id])
+                _msgs.push(`log [N]: mayBeOffsetZ ${_oldVal}->${mayBeOffsetZ}`)
                 mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
-
-                _msgs.push(`case2: x=${cube.position.x}, z=${cube.position.z}, mayBeOffsetY=${mayBeOffsetY}, mayBeDowngradeOffsetX=${mayBeDowngradeOffsetX}`)
+                
                 if (isCorrectCube) {
                   // console.log(`-> correct: +${inSI.getMeters(cargoLength[id]).toFixed(2)} +${inSI.getMeters(cargoAddSize[id]).toFixed(2)} =${inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])}`)
                   totalX += inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
                 }
+
+                // if (mayBeOffsetZ !== 0) dynamic.offsetX -= inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+                dynamic.offsetX -= inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+                mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+
+                dynamic.curPosition.rowItems.splice(0, dynamic.curPosition.rowItems.length)
+                dynamic.curPosition.rowItems.push(cargoWidth[id] + cargoAddSize[id])
+                dynamic.curPosition.stash.leftX = inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                dynamic.curPosition.stash.leftZ = inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - inSI.getMeters(dynamic.curPosition.rowItems.reduce((acc, cur) => {
+                  acc += cur
+                  return acc
+                }, 0))
+
+                dynamic.curPosition.subStash.leftX = inSI.getMeters(cargoLength[id] + cargoAddSize[id])
+                dynamic.curPosition.subStash.leftZ = inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - inSI.getMeters(dynamic.curPosition.rowItems.reduce((acc, cur) => {
+                  acc += cur
+                  return acc
+                }, 0))
+
+                _msgs.push(`log [N]: leftX=${dynamic.curPosition.stash.leftX}`)
+                _msgs.push(`log [N]: leftZ=${dynamic.curPosition.stash.leftZ}`)
               }
-              cube.position.y = coordY + offsetY
+              
+              // if (
+              //   // Если продукт помещается рядом, а именно:
+              //   // ...если возможен сдвиг продукта по ширине
+              //   (
+              //     mayBeOffsetZ > 0
+              //     && ((inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetZ) > inSI.getMeters(cargoWidth[id]))
+              //   )
+              //   // ...и возможен ли возврат по оси X (red)
+              //   && ((mayBeDowngradeOffsetX - inSI.getMeters(cargoLength[id])) > 0)
+              // ) {
+                
+              // } else {}
+              cube.position.y = coordY
               scene.add(cube);
     
-              const sphereMesh = createPointMesh({
-                name,
-                x: cube.position.x,
-                y: cube.position.y,
-                z: cube.position.z,
-              })
+              const sphereMesh = createPointMesh({ name, x: cube.position.x, y: cube.position.y, z: cube.position.z })
               cubesData[name] = {
                 target: cube,
-                // x: cube.position.x,
-                // y: cube.position.y,
-                // z: cube.position.z,
+                // x: cube.position.x, y: cube.position.y, z: cube.position.z,
                 descr: comment,
                 _details: {
                   _msgs,
@@ -401,9 +550,26 @@ function init() {
     
           scene.add(group)
         }
+        // --
     
         const mousePos = new Vector2()
         const raycaster = new Raycaster()
+
+        function onHover (e: any) {
+          const mousePos = new Vector2()
+          // console.log(e)
+          mousePos.x = (e.clientX / innerWidth) * 2 - 1
+          mousePos.y = -(e.clientY / innerHeight) * 2 + 1
+          raycaster.setFromCamera(mousePos, camera)
+          const intersects = raycaster.intersectObject(group, true)
+          const cleanup = () => document.body.style.cursor = 'default'
+          cleanup()
+          if (intersects.length > 0) {
+            document.body.style.cursor = 'pointer'
+          } else document.body.style.cursor = 'default'
+        }
+        window.removeEventListener('mousemove', onHover)
+        window.addEventListener('mousemove', onHover)
 
         function tooltipHandler (e: any) {
           switch (e.button) {
@@ -455,9 +621,9 @@ function init() {
         window.removeEventListener('mousedown', tooltipHandler)
         window.addEventListener('mousedown', tooltipHandler)
     
-        if (mayBeOffsetY !== 0) offsetX -= inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+        // if (mayBeOffsetZ !== 0) dynamic.offsetX -= inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
         
-        mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
+        // mayBeDowngradeOffsetX = inSI.getMeters(cargoLength[id]) + inSI.getMeters(cargoAddSize[id])
       })
       showNotif({
         type: 'info',
@@ -499,7 +665,8 @@ function init() {
     // ===== 🎥 CAMERA =====
     {
       camera = new PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 100)
-      camera.position.set(5, 8, 10)
+      // camera.position.set(5, 8, 10)
+      camera.position.set(-5, 14, 7)
     }
 
     // ===== 🕹️ CONTROLS =====
