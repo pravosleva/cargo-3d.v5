@@ -406,7 +406,7 @@ function init() {
                         // ✅ Ставить рядом по ширине фуры
                 
                         cube.position.x = coordX - dynamic.offsetX - mayBeDowngradeOffsetX
-                        _msgs.push(`log [1.1.1]: dynamic.offsetX ${dynamic.offsetX}`)
+                        _msgs.push(`log [1.1.1]: dynamic.offsetX=${dynamic.offsetX}`)
                         cube.position.z = coordZ + mayBeOffsetZ
                         
                         const _oldVal = mayBeOffsetZ
@@ -425,15 +425,14 @@ function init() {
                           return acc
                         }, 0))
 
-                        // dynamic.curPosition.subStash.leftX = dynamic.curPosition.stash.leftX - inSI.getMeters(cargoLength[id] + cargoAddSize[id])
                         dynamic.curPosition.subStash.leftX -= inSI.getMeters(cargoLength[id] + cargoAddSize[id])
                         dynamic.curPosition.subStash.leftZ = inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
 
-                        _msgs.push(`log [1.1.1]: stash leftX=${dynamic.curPosition.stash.leftX}`)
-                        _msgs.push(`log [1.1.1]: stash leftZ=${dynamic.curPosition.stash.leftZ}`)
+                        _msgs.push(`log [1.1.1]: stash.leftX=${dynamic.curPosition.stash.leftX}`)
+                        _msgs.push(`log [1.1.1]: stash.leftZ=${dynamic.curPosition.stash.leftZ}`)
 
-                        _msgs.push(`log [1.1.1]: subStash leftX=${dynamic.curPosition.subStash.leftX}`)
-                        _msgs.push(`log [1.1.1]: subStash leftZ=${dynamic.curPosition.subStash.leftZ}`)
+                        _msgs.push(`log [1.1.1]: subStash.leftX=${dynamic.curPosition.subStash.leftX}`)
+                        _msgs.push(`log [1.1.1]: subStash.leftZ=${dynamic.curPosition.subStash.leftZ}`)
                       } else {
 
                         // TODO: 1.1.2 Хватит ли места поставить в текущий ряд перед предыдущим?
@@ -461,12 +460,12 @@ function init() {
                         dynamic.curPosition.subStash.leftX -= inSI.getMeters(cargoLength[id] + cargoAddSize[id])
                         // dynamic.curPosition.subStash.leftZ = inSI.getMeters(cargoWidth[id] + cargoAddSize[id])
 
-                        _msgs.push(`log [1.2.1]: ${name} в ряду ${
+                        _msgs.push(`log [1.2.1]: ${name} в ряд ${
                           dynamic.counters.currentColumn
-                        } вписался перед предыдущим (SUBSTASH case)`)
-                      } else throw new Error(`Go default: ${name} не проходит по ширине в ряду ${
+                        }-м элементом вписался перед предыдущим (SUBSTASH case)`)
+                      } else throw new Error(`Go default: ${name} не проходит по ширине в один ряд ${
                         dynamic.counters.currentColumn
-                      } и не вписался перед предыдущим (1.2.2)`)
+                      }-м элементом и не вписался перед предыдущим (1.2.2)`)
                     }
                     break
                   case (inSI.getMeters(searchParamsNormalized?.wagonWidth || 0) - mayBeOffsetZ) > inSI.getMeters(cargoWidth[id]):
@@ -483,7 +482,7 @@ function init() {
                 dynamic.counters.currentColumn = 1
                 // N. Ставить дальше по длине фуры
                 cube.position.x = coordX - dynamic.offsetX
-                _msgs.push(`log [N]: dynamic.offsetX ${dynamic.offsetX}`)
+                _msgs.push(`log [N]: dynamic.offsetX=${dynamic.offsetX}`)
                 cube.position.z = coordZ
                 const _oldVal = mayBeOffsetZ
                 mayBeOffsetZ = inSI.getMeters(cargoWidth[id]) + inSI.getMeters(cargoAddSize[id])
@@ -513,8 +512,8 @@ function init() {
                   return acc
                 }, 0))
 
-                _msgs.push(`log [N]: leftX=${dynamic.curPosition.stash.leftX}`)
-                _msgs.push(`log [N]: leftZ=${dynamic.curPosition.stash.leftZ}`)
+                _msgs.push(`log [N]: stash.leftX=${dynamic.curPosition.stash.leftX}`)
+                _msgs.push(`log [N]: stash.leftZ=${dynamic.curPosition.stash.leftZ}`)
               }
               
               // if (
