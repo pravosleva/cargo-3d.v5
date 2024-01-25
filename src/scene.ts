@@ -1,7 +1,7 @@
 // import GUI from 'lil-gui'
 import {
   AmbientLight,
-  AxesHelper,
+  // AxesHelper,
   BoxGeometry,
   Clock,
   GridHelper,
@@ -51,7 +51,7 @@ let plane: Mesh
 let camera: PerspectiveCamera
 let cameraControls: OrbitControls
 let dragControls: DragControls
-let axesHelper: AxesHelper
+// let axesHelper: AxesHelper
 let pointLightHelper: PointLightHelper
 let clock: Clock
 let stats: Stats
@@ -728,15 +728,15 @@ function init() {
     // ===== 🪄 HELPERS =====
     {
       // NOTE: The X axis is red. The Y axis is green. The Z axis is blue.
-      axesHelper = new AxesHelper(4)
-      axesHelper.visible = true
-      scene.add(axesHelper)
+      // axesHelper = new AxesHelper(4)
+      // axesHelper.visible = true
+      // scene.add(axesHelper)
 
       pointLightHelper = new PointLightHelper(pointLight, undefined, 'orange')
       pointLightHelper.visible = false
       scene.add(pointLightHelper)
 
-      const gridHelper = new GridHelper(20, 20, 'teal', 'darkgray')
+      const gridHelper = new GridHelper(15, 15, 'teal', 'darkgray')
       gridHelper.position.y = -0.01
       scene.add(gridHelper)
     }
