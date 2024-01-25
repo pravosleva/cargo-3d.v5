@@ -36,6 +36,7 @@ import { inSI } from './utils/inSI'
 import { retail } from './utils/retail'
 import { TSearchParamsNormalized } from './utils/types'
 import { createPointMesh } from './utils/three/createPointMesh'
+import classes from './main.module.scss'
 
 const CANVAS_ID = 'scene'
 
@@ -77,6 +78,7 @@ function init() {
       if (!!validateParamsResult.output) searchParamsNormalized = validateParamsResult.output
     }
     if (!searchParamsNormalized) throw new Error(`🚫 searchParamsNormalized is ${typeof searchParamsNormalized}`)
+    
     // ===== 🖼️ CANVAS, RENDERER, & SCENE =====
     {
       canvas = document.querySelector(`canvas#${CANVAS_ID}`)!
@@ -123,33 +125,12 @@ function init() {
 
     // ===== 📦 OBJECTS =====
     {
-      const p = document.createElement('p')
-      p.innerHTML = 'PAR'
-      p.style.width = '400px'
-      // p.style.width = '100%'
-      // p.style.maxWidth = 'calc(100vw - 16px - 16px)'
-      p.style.height = 'auto'
-      p.style.padding = '16px'
-      p.style.border = '4px solid transparent'
-      // p.style.backgroundColor = '#fff'
-      p.style.borderRadius = 'inherit'
-      p.style.color = 'black'
-      p.style.maxHeight = 'calc(100svh - 16px - 16px)'
-      p.style.overflowY = 'auto'
-      p.style.display = 'flex'
-      p.style.flexDirection = 'column'
-      p.style.gap = '16px'
-      p.style.fontSize = '0.6em'
-      p.style.lineHeight = '1.2em'
+      const p = document.createElement('div')
+      p.classList.add(classes.fixedProductInfoInternalBox)
       const wrapper = document.createElement('div')
-      wrapper.style.position = 'fixed'
-      wrapper.style.top = '16px'
-      wrapper.style.right = '16px'
-      wrapper.style.opacity = '0'
-      wrapper.className = 'backdrop-blur--lite'
-      wrapper.style.transition = 'all 0.3s linear'
-      wrapper.style.borderRadius = '16px'
       wrapper.appendChild(p)
+      wrapper.classList.add(classes.fixedProductInfoWrapper)
+      wrapper.classList.add('backdrop-blur--lite')
       document.body.appendChild(wrapper)
       const cPointLabel = new CSS2DObject(wrapper)
       scene.add(cPointLabel);
@@ -171,6 +152,7 @@ function init() {
             leftZ: number;
           };
         };
+        maxWeight: number;
       } = {
         offsetX: inSI.getMeters(searchParamsNormalized.wagonLength) / 2.1,
         counters: {
@@ -187,6 +169,7 @@ function init() {
             leftZ: 0,
           },
         },
+        maxWeight: 0,
       }
       // let offsetZ_cargoOnly = inSI.getMeters(searchParamsNormalized.wagonWidth) / 4
       let degToRad = (deg: number) => deg * Math.PI / 180;
@@ -233,7 +216,7 @@ function init() {
       const cargoLength: {[key: string]: number} = {}
       const cargoWidth: {[key: string]: number} = {}
       const cargoHeight: {[key: string]: number} = {}
-      // const cargoWeight: {[key: string]: number} = {}
+      const cargoWeight: {[key: string]: number} = {}
       const cargoAddSize: {[key: string]: number} = {} // #{addSize};
       const products = searchParamsNormalized.productList.map((product) => {
         const {
@@ -244,6 +227,9 @@ function init() {
           weight,
           addSize,
         } = product;
+        // NOTE: retail.inWagon нуже только для того, чтоб вычислить оптимальное расположение
+        // груза в машине, так, чтобы заполнить машину по максимуму
+        // ТОЛЬКО ЭТИМ ПРОДУКТОМ (should be refactored)
         const cargoConfig = retail.inWagon({
           length,
           width,
@@ -264,6 +250,7 @@ function init() {
         cargoLength[id] = length
         cargoWidth[id] = width
         cargoHeight[id] = height
+        cargoWeight[id] = weight
         cargoAddSize[id] = addSize
         
         return ({
@@ -276,6 +263,7 @@ function init() {
         id,
         width,
         // length,
+        weight,
         horizontalOrientation,
         // cargoConfig,
       }) => {
@@ -296,6 +284,7 @@ function init() {
           default:
             break;
         }
+        if (weight > dynamic.maxWeight) dynamic.maxWeight = weight
       })
 
       const getCubeGeometry = (
@@ -308,13 +297,16 @@ function init() {
         inSI.getMeters(cargoHeight),
       );
       let _pcs = 0 // количество отображаемых кубиков
-      const _fact_inWagon = {
-        result: products.reduce((acc, { cargoConfig }) => acc + cargoConfig.result, 0),
-        comment: 'In progress',
-        sizes: { comment: 'In progress' },
-      }
-      if (!_fact_inWagon.result)
-        throw new Error(`_fact_inWagon err! ${_fact_inWagon.comment}`)
+
+      // -- NOTE: Проверка, есть ли хотябы один такой продукт в контейнере (?)
+      // const _fact_inWagon = {
+      //   result: products.reduce((acc, { cargoConfig }) => acc + cargoConfig.result, 0),
+      //   comment: 'In progress',
+      //   sizes: { comment: 'In progress' },
+      // }
+      // if (!_fact_inWagon.result)
+      //   throw new Error(`_fact_inWagon err! ${_fact_inWagon.comment}`)
+      // --
 
       let mayBeOffsetZ = 0 // Сдвиг нового продукта в сторону по ширине
       let mayBeDowngradeOffsetX = 0 // Сдвиг (возврат) нового продукта обратно по оси X
@@ -330,7 +322,13 @@ function init() {
         };
       } = {}
       products.forEach((
-        { cargoConfig, id, name, comment, ...rest },
+        {
+          cargoConfig,
+          id,
+          name,
+          comment,
+          ...rest
+        },
         // pi
       ) => {
         // const { config } = cargoConfig
@@ -363,8 +361,8 @@ function init() {
               _msgs.push(`coordZ= ${coordZ}`)
               let cubeMaterial
               if (
-                _pcs >= _fact_inWagon.result
-                || (searchParamsNormalized?.wagonWidth || 0) < (cargoWidth[id] + cargoAddSize[id])
+                // _pcs >= _fact_inWagon.result ||
+                (searchParamsNormalized?.wagonWidth || 0) < (cargoWidth[id] + cargoAddSize[id])
                 || (searchParamsNormalized?.maxInWagon || 0) <= _pcs
               ) {
                 cubeMaterial = new MeshStandardMaterial({
@@ -533,15 +531,27 @@ function init() {
               // } else {}
               cube.position.y = coordY
               scene.add(cube);
-    
-              const sphereMesh = createPointMesh({ name, x: cube.position.x, y: cube.position.y, z: cube.position.z })
+              
+              const sphereMesh = createPointMesh({
+                name,
+                x: cube.position.x,
+                y: cube.position.y,
+                z: cube.position.z,
+                mass: {
+                  maxLimit: dynamic.maxWeight,
+                  target: cargoWeight[id],
+                },
+              })
               cubesData[name] = {
                 target: cube,
                 // x: cube.position.x, y: cube.position.y, z: cube.position.z,
                 descr: comment,
                 _details: {
                   _msgs,
-                  isCorrectCube, cargoConfig, id, name, comment, ...rest,
+                  isCorrectCube,
+                  // cargoConfig,
+                  id, name, comment,
+                  ...rest,
                 },
               }
               group.add(sphereMesh)
@@ -594,7 +604,8 @@ function init() {
                   // @ts-ignore
                   // cPointLabel.position.set(cubesData[intersects[0].object.name].x, cubesData[intersects[0].object.name].y, cubesData[intersects[0].object.name].z)
                   // cPointLabel.position.set(1, 1, 1)
-                  p.className = 'tooltip--active'
+                  p.classList.toggle('tooltip--hidden', false)
+                  p.classList.toggle('tooltip--active', true)
                   // p.textContent = intersects[0].object.name
                   const { _details, target } = cubesData[intersects[0].object.name]
                   p.innerHTML = `<h3>${_details.name}</h3><pre style="white-space:pre-wrap;overflow-wrap:break-word;">${JSON.stringify(_details, null, 2)}</pre>`
@@ -605,7 +616,8 @@ function init() {
                   else p.style.borderColor = '#ff7373'
                 }
               } else {
-                p.className = 'tooltip--hidden'
+                p.classList.toggle('tooltip--active', false)
+                p.classList.toggle('tooltip--hidden', true)
                 p.textContent = 'OFF'
                 p.style.borderColor = 'transparent'
                 wrapper.style.opacity = '0'

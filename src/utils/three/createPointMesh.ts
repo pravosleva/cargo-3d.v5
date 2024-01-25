@@ -4,15 +4,27 @@ import {
   MeshBasicMaterial,
   Mesh,
 } from 'three'
+import { linear } from 'math-interpolate'
 
-
-export const createPointMesh = ({ name, x, y, z }: {
+export const createPointMesh = ({ name, x, y, z, mass }: {
   name: string;
   x: number;
   y: number;
   z: number;
+  mass: {
+    maxLimit: number;
+    target: number;
+  };
 }) => {
-  const geo = new SphereGeometry(0.3)
+  const radiusRange = [0.1, 0.3]
+  const targetRadius = linear({
+    x1: 0,
+    y1: radiusRange[0],
+    x2: mass.maxLimit,
+    y2: radiusRange[1],
+    x: mass.target,
+  })
+  const geo = new SphereGeometry(targetRadius)
   const mat = new MeshBasicMaterial({
     color: 0xFFFFFF,
   })
